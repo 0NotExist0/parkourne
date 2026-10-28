@@ -5,7 +5,6 @@
 
 import * as THREE from './vendor/three.module.js';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
-import { collega } from './rete.js';
 
 const ALTEZZA_OCCHI = 1.7;      // altezza collisione del personaggio
 const VELOCITA = 6;             // passi al secondo
@@ -101,7 +100,6 @@ function toccoPerDito(e, dito) {
 let cameraRy = 0;
 let cameraRx = 0;
 let inPartita = false;
-let statoRete = null;
 
 // Variabili riutilizzate per la camera fluida (non alloco ogni frame).
 const cameraIdeale = new THREE.Vector3();
@@ -143,7 +141,6 @@ window.addEventListener('mousemove', function (e) {
 
 document.getElementById('gioca').addEventListener('click', function () {
   inPartita = true;
-  statoRete = collega({});
   document.getElementById('inizio').hidden = true;
   document.getElementById('hud').hidden = false;
   document.getElementById('mirino').hidden = false;
@@ -156,53 +153,6 @@ document.getElementById('gioca').addEventListener('click', function () {
   // Su Android i controlli touch restano visibili per muoversi e saltare.
   document.getElementById('controlli-touch').hidden = false;
 });
-
-// Mostra l'URL raggiungibile da dispositivi esterni e abilita la copia negli appunti.
-// Quando si gioca in localhost l'indirizzo da condividere e' l'IP della LAN,
-// ottenuto chiedendolo al server (endpoint /ip). Il server espone solo HTTP,
-// quindi non viene mai forzato l'HTTPS.
-(function () {
-  const linkEsterno = document.getElementById('link-esterno');
-  const urlPubblico = document.getElementById('url-pubblico');
-  const copiaLink = document.getElementById('copia-link');
-  if (!linkEsterno || !urlPubblico || !copiaLink) return;
-
-  const host = window.location.hostname;
-  const porta = window.location.port || '8000';
-  const èLocale = host === 'localhost' || host === '127.0.0.1' || host === '::1';
-
-  function mostraUrl(url) {
-    urlPubblico.textContent = url;
-    linkEsterno.hidden = false;
-    urlPubblico.hidden = false;
-    copiaLink.hidden = false;
-
-    copiaLink.addEventListener('click', function () {
-      navigator.clipboard.writeText(url).then(function () {
-        const testoOrig = copiaLink.textContent;
-        copiaLink.textContent = 'Copiato!';
-        setTimeout(function () { copiaLink.textContent = testoOrig; }, 1500);
-      }, function () {
-        // Fallback per browser che non supportano l'API degli appunti.
-        try { urlPubblico.select(); } catch (e) {}
-        document.execCommand('copy');
-      });
-    });
-  }
-
-  if (èLocale) {
-    fetch('/ip', { cache: 'no-cache' })
-      .then(function (risposta) { return risposta.text(); })
-      .then(function (ip) {
-        ip = (ip || '').trim();
-        if (ip) mostraUrl('http://' + ip + ':' + porta);
-        else mostraUrl(window.location.origin);
-      })
-      .catch(function () { mostraUrl(window.location.origin); });
-  } else {
-    mostraUrl(window.location.origin);
-  }
-})();
 
 const joystick = document.getElementById('joystick');
 const stick = document.getElementById('joystick-stick');
@@ -473,9 +423,6 @@ function cicloDelGioco() {
   ultimoIstante = ora;
 
   if (inPartita) muoviGiocatore(dt);
-  if (statoRete && statoRete.collegato && inPartita) {
-    statoRete.manda({ tipo: 'stato', x: giocatore.x, y: giocatore.y, z: giocatore.z, ry: giocatore.ry });
-  }
   renderer.render(scena, camera);
 }
 renderer.setAnimationLoop(cicloDelGioco);
