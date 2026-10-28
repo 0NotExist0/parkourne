@@ -6,6 +6,15 @@
 
 export function collega(ascoltatori) {
   const stato = { collegato: false, id: null, presa: null, errore: null };
+
+  // Su Vercel (deployment statico) non c'e' server WebSocket: si gioca offline.
+  const suVercel = location.hostname.includes('vercel.app');
+  if (suVercel) {
+    stato.errore = 'Modalità offline (Vercel statico): si gioca da soli.';
+    if (ascoltatori.suErrore) ascoltatori.suErrore(stato.errore);
+    return stato;
+  }
+
   let indirizzo;
   try {
     indirizzo = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host;
