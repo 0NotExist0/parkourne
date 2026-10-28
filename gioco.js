@@ -99,7 +99,7 @@ function toccoPerDito(e, dito) {
 // NON dal joystick (che muove soltanto il personaggio).
 let cameraRy = 0;
 let cameraRx = 0;
-let inPartita = false;
+let inPartita = true;  // Partita avviata subito
 
 // Variabili riutilizzate per la camera fluida (non alloco ogni frame).
 const cameraIdeale = new THREE.Vector3();
@@ -107,29 +107,36 @@ const miraCamera = new THREE.Vector3();
 const quatAttuale = new THREE.Quaternion();
 const quatDesiderato = new THREE.Quaternion();
 
-// Torna al menu iniziale: rilascia il mouse, nasconde HUD e mirino, mostra di nuovo il bottone di gioco.
-function esciDallaPartita() {
-  inPartita = false;
-  document.exitPointerLock();
-  document.getElementById('inizio').hidden = false;
-  document.getElementById('hud').hidden = true;
-  document.getElementById('mirino').hidden = true;
-  document.getElementById('controlli-touch').hidden = true;
-  // Evita che un tasto premuto prima di uscire resti "premuto" al rientro.
-  for (const k in tasti) tasti[k] = false;
+// Avvia la partita automaticamente al caricamento
+function avviaPartita() {
+  inPartita = true;
+  // Su Android i controlli touch restano visibili per muoversi e saltare.
+  document.getElementById('controlli-touch').hidden = false;
+  // Prova a bloccare il mouse (richiede interazione utente in alcuni browser)
+  renderer.domElement.focus();
+  const richiesta = renderer.domElement.requestPointerLock();
+  if (richiesta && typeof richiesta.catch === 'function') {
+    richiesta.catch(function () {
+      // Se il lock fallisce, l'utente dovrà cliccare sul canvas per attivarlo
+    });
+  }
 }
 
+// Avvia subito
+avviaPartita();
+
+// ESC per uscire dal pointer lock (ma non dal gioco)
 window.addEventListener('keydown', function (e) {
   tasti[e.code] = true;
   if (e.code === 'Space') e.preventDefault();
-  if (e.code === 'Escape' && inPartita) esciDallaPartita();
+  if (e.code === 'Escape') {
+    document.exitPointerLock();
+  }
 });
 window.addEventListener('keyup', function (e) { tasti[e.code] = false; });
 
 window.addEventListener('pointerlockchange', function () {
-  if (document.pointerLockElement !== renderer.domElement && inPartita) {
-    esciDallaPartita();
-  }
+  // Non facciamo nulla: il gioco continua anche senza pointer lock
 });
 
 window.addEventListener('mousemove', function (e) {
@@ -139,19 +146,11 @@ window.addEventListener('mousemove', function (e) {
   cameraRx = Math.max(-1.5, Math.min(1.5, cameraRx));
 });
 
-document.getElementById('gioca').addEventListener('click', function () {
-  inPartita = true;
-  document.getElementById('inizio').hidden = true;
-  document.getElementById('hud').hidden = false;
-  document.getElementById('mirino').hidden = false;
-  // Porta il focus sul canvas prima di chiedere il blocco del mouse, altrimenti
-  // il lock fallisce (il focus resta sul bottone appena cliccato) e il pointerlockchange
-  // riporta subito al menu principale.
-  renderer.domElement.focus();
-  const richiesta = renderer.domElement.requestPointerLock();
-  if (richiesta && typeof richiesta.catch === 'function') richiesta.catch(function () {});
-  // Su Android i controlli touch restano visibili per muoversi e saltare.
-  document.getElementById('controlli-touch').hidden = false;
+// Click sul canvas per richiedere pointer lock se non è già attivo
+renderer.domElement.addEventListener('click', function () {
+  if (document.pointerLockElement !== renderer.domElement) {
+    renderer.domElement.requestPointerLock();
+  }
 });
 
 const joystick = document.getElementById('joystick');
