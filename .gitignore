@@ -1,0 +1,18 @@
+# File di lavoro e memorie dello Studio (non vanno sul deploy)
+.claude_memory.json
+MEMORY.md
+scheletro.json
+
+# Log
+*.log
+server-avvio.log
+server-test.log
+server.log
+cloudflared.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dependencies
+node_modules/
